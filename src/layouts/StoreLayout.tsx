@@ -86,7 +86,7 @@ export default function StoreLayout() {
     return () => window.removeEventListener('message', onMessage)
   }, [isDraftPreview])
 
-  const siteName = settings.site_name?.trim() || '{siteName}'
+  const siteName = settings.site_name?.trim() || 'LUNDER’S 3D STUDIO'
   const telHref = toTelHref(settings.phone)
   const whatsappHref = toWhatsAppHref(settings.whatsapp || settings.phone)
   const mailHref = toMailtoHref(settings.email)
@@ -344,7 +344,7 @@ export default function StoreLayout() {
               <div>
                 <div className="flex items-center gap-3">
                   {visualIdentity.assets.logo ? (
-                    <img src={visualIdentity.assets.logo} alt="LUNDER'S 3D STUDIO" className="h-9 max-w-36 object-contain" />
+                    <img src={visualIdentity.assets.logo} alt={siteName} className="h-9 max-w-36 object-contain" />
                   ) : (
                     <span className="store-brand-mark h-9 w-9">
                       <Printer className="h-4 w-4 text-white" />
