@@ -70,8 +70,10 @@
 .store-shell [class~='text-white']:not([class*='bg-brand-red']):not([class*='btn-']) { color: var(--lz-ink) !important; }
 .store-shell [class~='text-brand-red'],
 .store-shell [class~='text-brand-red-light'] { color: var(--lz-signal-text, var(--lz-signal)) !important; }
+.store-shell [class~='text-brand-amber'] { color: var(--lz-accent-text, var(--lz-accent)) !important; }
 .store-shell [class~='bg-brand-red'],
 .store-shell [class*='bg-brand-red/'] { background-color: var(--lz-signal) !important; }
+.store-shell [class~='bg-brand-amber'] { background-color: var(--lz-accent) !important; color: var(--lz-accent-button-text, #111111) !important; }
 .store-shell [class~='border-brand-red'],
 .store-shell [class*='border-brand-red/'] { border-color: color-mix(in srgb, var(--lz-signal) 60%, transparent) !important; }
 .store-shell [class*='border-charcoal-400'] { border-color: var(--lz-hairline) !important; }
