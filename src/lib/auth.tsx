@@ -113,6 +113,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (cancelled) return
       setSession(nextSession)
       if (nextSession) {
+        // Après une nouvelle connexion, le guard admin doit attendre la lecture
+        // du rôle en base au lieu de rediriger prématurément vers /admin.
+        if (event === 'SIGNED_IN') {
+          setLoading(true)
+          setProfile(null)
+          setProfileUnavailable(false)
+        }
         void loadProfile(nextSession)
       } else {
         requestId.current += 1
