@@ -6,6 +6,7 @@ import {
 import { supabase } from '@/lib/supabase'
 import { useCart } from '@/lib/cart'
 import { formatDzd } from '@/lib/format'
+import { useAuth } from '@/lib/auth'
 import {
   DELIVERY_METHOD_LABELS,
   normalizeAlgerianPhone,
@@ -35,6 +36,7 @@ const METHOD_DETAILS: Record<Method, { icon: typeof Home; title: string; descrip
 export default function CheckoutPage() {
   const navigate = useNavigate()
   const { items, subtotal, clear } = useCart()
+  const { session, profile } = useAuth()
 
   const [wilayas, setWilayas] = useState<Wilaya[]>([])
   const [communes, setCommunes] = useState<Commune[]>([])
@@ -66,6 +68,13 @@ export default function CheckoutPage() {
       ? crypto.randomUUID()
       : `${Date.now()}-${Math.random().toString(36).slice(2)}`
   )
+
+  // Préremplit uniquement les champs encore vides pour ne jamais écraser
+  // les coordonnées que le client a déjà commencé à saisir.
+  useEffect(() => {
+    if (profile?.full_name) setName((current) => current || profile.full_name || '')
+    if (session?.user.email) setEmail((current) => current || session.user.email || '')
+  }, [profile?.full_name, session?.user.email])
 
   useEffect(() => {
     supabase
@@ -214,40 +223,49 @@ export default function CheckoutPage() {
     }
 
     setSubmitting(true)
-    const { data, error: rpcError } = await supabase.rpc('create_guest_order', {
-      p_payload: {
-        idempotency_key: idempotencyKey.current,
-        customer_name: name.trim(),
-        phone: normalizedPhone,
-        email: email.trim() || null,
-        wilaya_code: Number(wilayaCode),
-        commune_id: communeId,
-        delivery_method: method,
-        address: method === 'domicile' ? address.trim() : null,
-        pickup_point_id: method === 'stopdesk' ? pickupId : null,
-        note: note.trim() || null,
-        items: items.map((line) => ({
-          product_id: line.productId,
-          variant_id: line.variantId,
-          quantity: line.quantity,
-        })),
-      },
-    })
+    try {
+      const { data, error: rpcError } = await supabase.rpc('create_guest_order', {
+        p_payload: {
+          idempotency_key: idempotencyKey.current,
+          customer_name: name.trim(),
+          phone: normalizedPhone,
+          email: email.trim() || null,
+          wilaya_code: Number(wilayaCode),
+          commune_id: communeId,
+          delivery_method: method,
+          address: method === 'domicile' ? address.trim() : null,
+          pickup_point_id: method === 'stopdesk' ? pickupId : null,
+          note: note.trim() || null,
+          items: items.map((line) => ({
+            product_id: line.productId,
+            variant_id: line.variantId,
+            quantity: line.quantity,
+          })),
+        },
+      })
 
-    if (rpcError) {
-      setSubmitting(false)
-      setError(
-        orderErrorMessage(
-          rpcError.message,
-          "La commande n'a pas pu être enregistrée. Vérifiez vos informations et réessayez."
+      if (rpcError) {
+        setError(
+          orderErrorMessage(
+            rpcError.message,
+            "La commande n'a pas pu être enregistrée. Vérifiez vos informations et réessayez."
+          )
         )
-      )
-      return
-    }
+        return
+      }
 
-    const created = data as CreatedOrder
-    clear()
-    navigate(`/boutique/commande/confirmation?token=${created.tracking_token}`)
+      const created = data as CreatedOrder
+      if (!created?.tracking_token) {
+        setError("La commande semble avoir été reçue, mais le numéro de suivi n'a pas été retourné. Contactez l'atelier avant de réessayer.")
+        return
+      }
+      clear()
+      navigate(`/boutique/commande/confirmation?token=${encodeURIComponent(created.tracking_token)}`)
+    } catch {
+      setError("Connexion interrompue pendant l'enregistrement. Votre panier est conservé : vérifiez le suivi avant de soumettre à nouveau.")
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const articleCount = items.reduce((sum, line) => sum + line.quantity, 0)
