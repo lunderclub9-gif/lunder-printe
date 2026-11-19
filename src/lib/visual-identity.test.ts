@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   DEFAULT_VISUAL_IDENTITY,
+  accessibleTextColor,
   contrastRatio,
   normalizeVisualIdentity,
   parseVisualIdentity,
@@ -36,6 +37,21 @@ describe('visual identity configuration', () => {
   it('calculates WCAG contrast ratios for black and white', () => {
     expect(contrastRatio('#000000', '#FFFFFF')).toBeCloseTo(21, 5)
     expect(contrastRatio('#777777', '#FFFFFF')).toBeLessThan(4.5)
+  })
+
+  it('automatically chooses readable text for bright orange and gold button themes', () => {
+    const orange = '#F59E0B'
+    const whiteOnOrange = contrastRatio('#FFFFFF', orange)
+    const safe = accessibleTextColor([orange, '#FDBA36', '#D97706'], '#FFFFFF')
+    expect(whiteOnOrange).toBeLessThan(4.5)
+    expect(safe).toBe('#111111')
+    expect(contrastRatio(safe, orange)).toBeGreaterThanOrEqual(4.5)
+    expect(contrastRatio(safe, '#FDBA36')).toBeGreaterThanOrEqual(4.5)
+    expect(contrastRatio(safe, '#D97706')).toBeGreaterThanOrEqual(4.5)
+  })
+
+  it('keeps a preferred button label color when it passes every background', () => {
+    expect(accessibleTextColor(['#E32636', '#C41F2D'], '#FFFFFF')).toBe('#FFFFFF')
   })
 
   it('exposes typography, motion and color tokens as CSS variables', () => {
