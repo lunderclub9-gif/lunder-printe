@@ -224,33 +224,41 @@ export default function CustomerAccountPage() {
     }
 
     setSaving(true)
-    if (mode === 'login') {
-      const { error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password })
-      setSaving(false)
-      if (error) setMessage({ type: 'error', text: 'Connexion impossible. Vérifiez vos identifiants et réessayez.' })
-      else setMessage({ type: 'success', text: 'Connexion réussie. Bienvenue dans votre espace LUNDER.' })
-      return
-    }
+    try {
+      if (mode === 'login') {
+        const { error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password })
+        if (error) {
+          setMessage({ type: 'error', text: 'Connexion impossible. Vérifiez vos identifiants et réessayez.' })
+        } else {
+          setConfirmationPending(false)
+          setMessage({ type: 'success', text: 'Connexion réussie. Bienvenue dans votre espace LUNDER.' })
+        }
+        return
+      }
 
-    const { data, error } = await supabase.auth.signUp({
-      email: cleanEmail,
-      password,
-      options: {
-        data: { name: name.trim() },
-        emailRedirectTo: `${window.location.origin}/boutique/compte?mode=verified`,
-      },
-    })
-    setSaving(false)
-    if (error) {
-      setMessage({ type: 'error', text: error.message.includes('already registered')
-        ? 'Cette adresse e-mail possède déjà un compte. Connectez-vous.'
-        : 'La création du compte a échoué. Vérifiez les informations et réessayez.' })
-      return
+      const { data, error } = await supabase.auth.signUp({
+        email: cleanEmail,
+        password,
+        options: {
+          data: { name: name.trim() },
+          emailRedirectTo: `${window.location.origin}/boutique/compte?mode=verified`,
+        },
+      })
+      if (error) {
+        setMessage({ type: 'error', text: error.message.toLowerCase().includes('already registered')
+          ? 'Cette adresse e-mail possède déjà un compte. Connectez-vous.'
+          : 'La création du compte a échoué. Vérifiez les informations et réessayez.' })
+        return
+      }
+      setConfirmationPending(!data.session)
+      setMessage(data.session
+        ? { type: 'success', text: 'Votre compte est créé. Bienvenue chez LUNDER !' }
+        : { type: 'info', text: 'Votre compte est presque prêt : confirmez votre adresse e-mail depuis le message reçu.' })
+    } catch {
+      setMessage({ type: 'error', text: 'Service indisponible pour le moment. Vérifiez votre connexion puis réessayez.' })
+    } finally {
+      setSaving(false)
     }
-    setConfirmationPending(!data.session)
-    setMessage(data.session
-      ? { type: 'success', text: 'Votre compte est créé. Bienvenue chez LUNDER !' }
-      : { type: 'info', text: 'Votre compte est presque prêt : confirmez votre adresse e-mail depuis le message reçu.' })
   }
 
   const resendConfirmation = async () => {
@@ -261,17 +269,22 @@ export default function CustomerAccountPage() {
     }
     setSaving(true)
     setMessage(null)
-    const { error } = await supabase.auth.resend({
-      type: 'signup',
-      email: cleanEmail,
-      options: { emailRedirectTo: `${window.location.origin}/boutique/compte?mode=verified` },
-    })
-    setSaving(false)
-    if (error) {
-      setMessage({ type: 'error', text: 'Impossible de renvoyer le message. Attendez un instant puis réessayez.' })
-      return
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: cleanEmail,
+        options: { emailRedirectTo: `${window.location.origin}/boutique/compte?mode=verified` },
+      })
+      if (error) {
+        setMessage({ type: 'error', text: 'Impossible de renvoyer le message. Attendez un instant puis réessayez.' })
+        return
+      }
+      setMessage({ type: 'success', text: 'Si cette adresse attend une confirmation, un nouveau message vient d’être envoyé.' })
+    } catch {
+      setMessage({ type: 'error', text: 'Service e-mail indisponible. Réessayez dans quelques instants.' })
+    } finally {
+      setSaving(false)
     }
-    setMessage({ type: 'success', text: 'Si cette adresse attend une confirmation, un nouveau message vient d’être envoyé.' })
   }
 
   const requestPasswordReset = async () => {
@@ -282,16 +295,21 @@ export default function CustomerAccountPage() {
     }
     setSaving(true)
     setMessage(null)
-    const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
-      redirectTo: `${window.location.origin}/boutique/compte?mode=recovery`,
-    })
-    setSaving(false)
-    if (error) {
-      setMessage({ type: 'error', text: 'Impossible d’envoyer le lien. Vérifiez votre adresse et réessayez.' })
-      return
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+        redirectTo: `${window.location.origin}/boutique/compte?mode=recovery`,
+      })
+      if (error) {
+        setMessage({ type: 'error', text: 'Impossible d’envoyer le lien. Vérifiez votre adresse et réessayez.' })
+        return
+      }
+      setResetEmailSent(true)
+      setMessage({ type: 'success', text: 'Si cette adresse correspond à un compte, un lien de réinitialisation vient d’être envoyé.' })
+    } catch {
+      setMessage({ type: 'error', text: 'Service e-mail indisponible. Réessayez dans quelques instants.' })
+    } finally {
+      setSaving(false)
     }
-    setResetEmailSent(true)
-    setMessage({ type: 'success', text: 'Si cette adresse correspond à un compte, un lien de réinitialisation vient d’être envoyé.' })
   }
 
   const updatePassword = async (event: FormEvent) => {
@@ -306,19 +324,24 @@ export default function CustomerAccountPage() {
     }
     setSaving(true)
     setMessage(null)
-    const { error } = await supabase.auth.updateUser({ password: newPassword })
-    setSaving(false)
-    if (error) {
-      setMessage({ type: 'error', text: 'La mise à jour a échoué. Ouvrez à nouveau le lien reçu par e-mail et réessayez.' })
-      return
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword })
+      if (error) {
+        setMessage({ type: 'error', text: 'La mise à jour a échoué. Ouvrez à nouveau le lien reçu par e-mail et réessayez.' })
+        return
+      }
+      const wasRecovery = recoveryMode
+      setRecoveryMode(false)
+      setPasswordChangeMode(false)
+      setNewPassword('')
+      setConfirmPassword('')
+      if (wasRecovery) window.history.replaceState({}, '', window.location.pathname)
+      setMessage({ type: 'success', text: 'Votre mot de passe a été modifié avec succès.' })
+    } catch {
+      setMessage({ type: 'error', text: 'Impossible de modifier le mot de passe pour le moment. Réessayez.' })
+    } finally {
+      setSaving(false)
     }
-    const wasRecovery = recoveryMode
-    setRecoveryMode(false)
-    setPasswordChangeMode(false)
-    setNewPassword('')
-    setConfirmPassword('')
-    if (wasRecovery) window.history.replaceState({}, '', window.location.pathname)
-    setMessage({ type: 'success', text: 'Votre mot de passe a été modifié avec succès.' })
   }
 
   const saveProfile = async (event: FormEvent) => {
@@ -329,25 +352,35 @@ export default function CustomerAccountPage() {
     }
     setSaving(true)
     setMessage(null)
-    const { error } = await supabase
-      .from('profiles')
-      .update({ full_name: editName.trim() })
-      .eq('id', session.user.id)
-    setSaving(false)
-    if (error) {
-      setMessage({ type: 'error', text: 'Impossible de mettre à jour votre profil. Réessayez.' })
-      return
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ full_name: editName.trim() })
+        .eq('id', session.user.id)
+      if (error) {
+        setMessage({ type: 'error', text: 'Impossible de mettre à jour votre profil. Réessayez.' })
+        return
+      }
+      setEditing(false)
+      setMessage({ type: 'success', text: 'Votre profil a été mis à jour.' })
+      window.location.reload()
+    } catch {
+      setMessage({ type: 'error', text: 'Service indisponible. Votre profil n’a pas été modifié.' })
+    } finally {
+      setSaving(false)
     }
-    setEditing(false)
-    setMessage({ type: 'success', text: 'Votre profil a été mis à jour.' })
-    window.location.reload()
   }
 
   const handleSignOut = async () => {
     setSaving(true)
-    await signOut()
-    setSaving(false)
-    setMessage({ type: 'success', text: 'Vous êtes déconnecté.' })
+    try {
+      await signOut()
+      setMessage({ type: 'success', text: 'Vous êtes déconnecté.' })
+    } catch {
+      setMessage({ type: 'error', text: 'La déconnexion a échoué. Actualisez la page puis réessayez.' })
+    } finally {
+      setSaving(false)
+    }
   }
 
   const activeOrders = accountOrders.filter((order) =>
