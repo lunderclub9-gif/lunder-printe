@@ -12,6 +12,8 @@ export default function AdminLogin() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [resetSending, setResetSending] = useState(false)
+  const [resetSent, setResetSent] = useState(false)
 
   if (loading) {
     return (
@@ -23,6 +25,30 @@ export default function AdminLogin() {
 
   if (isOwner) {
     return <Navigate to="/admin/dashboard" replace />
+  }
+
+  const handlePasswordReset = async () => {
+    const cleanEmail = email.trim().toLowerCase()
+    if (!cleanEmail) {
+      setError('Saisissez votre adresse e-mail pour recevoir le lien de réinitialisation.')
+      return
+    }
+    setError(null)
+    setResetSending(true)
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+        redirectTo: `${window.location.origin}/boutique/compte?mode=recovery`,
+      })
+      if (resetError) {
+        setError('Impossible d’envoyer le lien. Vérifiez l’adresse et réessayez.')
+        return
+      }
+      setResetSent(true)
+    } catch {
+      setError('Service indisponible pour le moment. Réessayez dans quelques instants.')
+    } finally {
+      setResetSending(false)
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -142,6 +168,12 @@ export default function AdminLogin() {
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Se connecter'}
             </button>
           </form>
+          <div className="mt-4 border-t border-white/10 pt-4 text-center">
+            <button type="button" onClick={handlePasswordReset} disabled={resetSending} className="text-xs font-semibold text-brand-red-light transition hover:text-white disabled:opacity-50">
+              {resetSending ? 'Envoi en cours…' : resetSent ? 'Renvoyer le lien de réinitialisation' : 'Mot de passe oublié ?'}
+            </button>
+            {resetSent && <p role="status" className="mt-2 text-xs leading-5 text-emerald-300">Si cette adresse correspond au compte propriétaire, un lien de réinitialisation vient d’être envoyé.</p>}
+          </div>
         </div>
 
         <p className="mt-6 text-center text-xs text-charcoal-500">
