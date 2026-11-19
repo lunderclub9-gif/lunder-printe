@@ -114,6 +114,7 @@ export function visualIdentityCssVars(config: VisualIdentity): CSSProperties {
     '--vi-button-text-safe': accessibleTextColor([config.colors.primary, config.colors.gradientStart, config.colors.gradientEnd], config.colors.buttonText),
     '--lz-signal-text': accessibleTextColor([config.colors.background, config.colors.surface], config.colors.primary),
     '--lz-accent-text': accessibleTextColor([config.colors.background, config.colors.surface], config.colors.accent),
+    '--lz-accent-button-text': accessibleTextColor([config.colors.accent], config.colors.buttonText),
     '--vi-shadow': String(config.shape.shadow),
     '--vi-body-font': '"' + config.typography.bodyFont + '", system-ui, sans-serif',
     '--vi-heading-font': '"' + config.typography.headingFont + '", system-ui, sans-serif',
