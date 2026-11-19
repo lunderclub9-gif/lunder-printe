@@ -69,7 +69,7 @@
 .store-shell [class~='text-charcoal-500'] { color: var(--lz-muted) !important; }
 .store-shell [class~='text-white']:not([class*='bg-brand-red']):not([class*='btn-']) { color: var(--lz-ink) !important; }
 .store-shell [class~='text-brand-red'],
-.store-shell [class~='text-brand-red-light'] { color: var(--lz-signal) !important; }
+.store-shell [class~='text-brand-red-light'] { color: var(--lz-signal-text, var(--lz-signal)) !important; }
 .store-shell [class~='bg-brand-red'],
 .store-shell [class*='bg-brand-red/'] { background-color: var(--lz-signal) !important; }
 .store-shell [class~='border-brand-red'],
@@ -113,7 +113,7 @@
 
 .store-shell .btn-primary {
   border-radius: var(--lz-btn-radius);
-  color: var(--vi-button-text, #fff);
+  color: var(--vi-button-text-safe, var(--vi-button-text, #fff));
   background-image: linear-gradient(
     135deg,
     color-mix(in srgb, var(--lz-signal) 82%, white 18%),
@@ -274,7 +274,7 @@
 .lz-chip[aria-pressed='true'] {
   border-color: transparent;
   background-color: var(--lz-signal);
-  color: var(--vi-button-text, #fff);
+  color: var(--vi-button-text-safe, var(--vi-button-text, #fff));
   box-shadow: 0 8px 20px color-mix(in srgb, var(--lz-signal) 26%, transparent);
 }
 
