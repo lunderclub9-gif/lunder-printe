@@ -46,6 +46,21 @@ Les fonctions du site transmettent les chemins suivants comme destinations :
 - [ ] Vérifier les règles Storage : lecture publique seulement pour les médias destinés au catalogue; écriture et suppression réservées au propriétaire ou à un flux validé.
 - [ ] Vérifier les sauvegardes et la procédure de restauration avant toute migration de production.
 
+## Audit de production en lecture seule — 19 novembre 2026
+
+Projet examiné : `bavsrogbmfbalvpmbozc` (projet précédemment désigné comme production). Aucun SQL de modification ni aucune migration n'a été exécuté.
+
+Constats à traiter avant d'activer les commandes publiques :
+
+- L'historique Supabase retourné par l'API ne contient que les versions `20261114233127` et `20261114233352`, alors que le dépôt contient 31 fichiers de migration. Cela peut refléter une histoire historique réinitialisée ou un déploiement manuel, mais il faut rapprocher chaque version de la structure réellement présente avant de déployer.
+- Security Advisor signale la vue `public.manufacturing_materials_public` comme `SECURITY DEFINER`. Sa définition actuelle ne sélectionne que le nom, les couleurs, la disponibilité et l'ordre d'affichage des matières disponibles; il faut néanmoins la convertir en vue `security_invoker` ou prouver explicitement pourquoi le comportement actuel est requis.
+- Security Advisor signale 23 fonctions `SECURITY DEFINER` exécutables par `anon` et 31 exécutables par `authenticated`. La revue initiale a confirmé que plusieurs fonctions de gestion vérifient `public.is_owner()`, mais les avertissements ne doivent pas être ignorés : révoquer les appels anonymes sur les fonctions de propriétaire et de déclencheur, tout en conservant uniquement les RPC anonymes nécessaires au catalogue, au devis public, au suivi et à la commande invitée.
+- `public.tracking_attempts` a RLS activé sans politique. Cela bloque l'accès direct (comportement fermé); confirmer que c'est intentionnel et que seul le code privilégié écrit les tentatives.
+- Security Advisor signale des fonctions avec un `search_path` mutable, notamment `update_updated_at`, `next_order_number` et `customer_quote_breakdown`.
+- Performance Advisor signale notamment des politiques RLS réévaluant `auth.uid()` ligne par ligne, des index non utilisés et des clés étrangères sans index couvrant. À prioriser après les points de sécurité, sans supprimer d'index sur la seule base d'un avertissement.
+
+Ces avertissements proviennent de l'analyseur statique et ne prouvent pas chacun une vulnérabilité exploitable. Ne pas révoquer en bloc toutes les fonctions `SECURITY DEFINER` : certaines sont nécessaires au parcours invité et doivent être évaluées fonction par fonction. Toute correction SQL doit être préparée dans un environnement isolé, testée, puis proposée dans une migration séparée avant approbation explicite de production.
+
 ## Test manuel de bout en bout
 
 Utiliser une adresse e-mail de test et des données non commerciales :
