@@ -16,6 +16,12 @@ type Setting = { key: string; value: string | null; is_public: boolean }
 
 const GROUPS: { title: string; keys: { key: string; label: string; type: 'text' | 'tel' | 'email' | 'url' | 'textarea'; help?: string }[] }[] = [
   {
+    title: 'Identité du magasin',
+    keys: [
+      { key: 'site_name', label: 'Nom du site / de la boutique', type: 'text', help: 'Ce nom sera affiché dans l’en-tête, le pied de page et le titre de l’onglet du navigateur.' },
+    ],
+  },
+  {
     title: 'Contact',
     keys: [
       { key: 'phone', label: 'Téléphone', type: 'tel', help: 'Format algérien, ex. 0550 12 34 56' },
@@ -72,6 +78,7 @@ export default function AdminSettings() {
     ;((settings as Setting[]) ?? []).forEach((row) => {
       next[row.key] = row.value ?? ''
     })
+    if (!next.site_name?.trim()) next.site_name = 'LUNDER’S 3D STUDIO'
     setValues(next)
     setError(null)
     setLoading(false)
@@ -158,10 +165,17 @@ export default function AdminSettings() {
       return
     }
 
+    const siteName = values.site_name?.trim()
+    if (!siteName || siteName.length > 60) {
+      setError('Le nom du site est obligatoire et doit contenir 60 caractères maximum.')
+      return
+    }
+
     setSaving(true)
     const rows = Object.entries(values).map(([key, value]) => ({
       key,
       value: value.trim() ? value.trim() : null,
+      ...(key === 'site_name' ? { is_public: true } : {}),
     }))
     const { error: writeError } = await supabase
       .from('store_settings')
