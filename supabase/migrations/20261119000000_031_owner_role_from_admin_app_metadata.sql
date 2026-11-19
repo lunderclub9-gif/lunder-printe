@@ -26,13 +26,14 @@ BEGIN
     )
     ON CONFLICT (id) DO UPDATE
       SET role = 'owner';
-  ELSIF TG_OP = 'UPDATE'
-     AND COALESCE(OLD.raw_app_meta_data ->> 'lunder_role', '') = 'owner' THEN
-    -- Removing the trusted marker revokes only the owner role assigned by it.
-    UPDATE public.profiles
-       SET role = 'customer'
-     WHERE id = NEW.id
-       AND role = 'owner';
+  ELSIF TG_OP = 'UPDATE' THEN
+    IF COALESCE(OLD.raw_app_meta_data ->> 'lunder_role', '') = 'owner' THEN
+      -- Removing the trusted marker revokes only the owner role assigned by it.
+      UPDATE public.profiles
+         SET role = 'customer'
+       WHERE id = NEW.id
+         AND role = 'owner';
+    END IF;
   END IF;
 
   RETURN NEW;
