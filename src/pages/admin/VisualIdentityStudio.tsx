@@ -101,8 +101,8 @@ export default function VisualIdentityStudio() {
 
     check('Texte principal', config.colors.text, [config.colors.background, config.colors.surface, config.colors.surfaceAlt])
     check('Texte secondaire', config.colors.muted, [config.colors.background, config.colors.surface, config.colors.surfaceAlt])
-    check('Texte accent', config.colors.primary, [config.colors.background, config.colors.surface])
-    check('Accent secondaire', config.colors.accent, [config.colors.background, config.colors.surface])
+    check('Texte accent (après correction automatique)', accessibleTextColor([config.colors.background, config.colors.surface], config.colors.primary), [config.colors.background, config.colors.surface])
+    check('Accent secondaire (après correction automatique)', accessibleTextColor([config.colors.background, config.colors.surface], config.colors.accent), [config.colors.background, config.colors.surface])
     check('Texte des boutons (après correction automatique)', accessibleTextColor([config.colors.primary, config.colors.gradientStart, config.colors.gradientEnd], config.colors.buttonText), [config.colors.primary, config.colors.gradientStart, config.colors.gradientEnd])
     check('Titres', config.colors.text, [config.colors.header, config.colors.footer])
     return warnings
