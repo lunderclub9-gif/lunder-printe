@@ -86,6 +86,7 @@ export default function StoreLayout() {
     return () => window.removeEventListener('message', onMessage)
   }, [isDraftPreview])
 
+  const siteName = settings.site_name?.trim() || '{siteName}'
   const telHref = toTelHref(settings.phone)
   const whatsappHref = toWhatsAppHref(settings.whatsapp || settings.phone)
   const mailHref = toMailtoHref(settings.email)
@@ -102,6 +103,24 @@ export default function StoreLayout() {
     return () => window.removeEventListener('keydown', closeOnEscape)
   }, [mobileOpen, searchOpen])
 
+  useEffect(() => {
+    const seoTitle = settings.seo_title?.trim()
+    const pageTitle = seoTitle
+      ? (seoTitle.toLowerCase().includes(siteName.toLowerCase()) ? seoTitle : `${seoTitle} | ${siteName}`)
+      : `${siteName} — Boutique officielle`
+    document.title = pageTitle
+
+    const setMeta = (selector: string, content: string) => {
+      const element = document.querySelector<HTMLMetaElement>(selector)
+      if (element) element.content = content
+    }
+    setMeta('meta[property="og:site_name"]', siteName)
+    setMeta('meta[property="og:title"]', pageTitle)
+    if (settings.seo_description?.trim()) {
+      setMeta('meta[name="description"]', settings.seo_description.trim())
+      setMeta('meta[property="og:description"]', settings.seo_description.trim())
+    }
+  }, [settings.seo_title, settings.seo_description, siteName])
   const socials = Object.keys(SOCIAL_LABELS)
     .map((key) => ({ key, label: SOCIAL_LABELS[key], url: safeExternalUrl(settings[key]) }))
     .filter((social): social is { key: string; label: string; url: string } => Boolean(social.url))
@@ -149,7 +168,7 @@ export default function StoreLayout() {
               {visualIdentity.assets.logo ? (
                 <img
                   src={visualIdentity.assets.logo}
-                  alt="LUNDER'S 3D STUDIO"
+                  alt={siteName}
                   className={visualIdentity.assets.mobileLogo ? 'hidden h-9 max-w-40 object-contain sm:block' : 'h-9 max-w-40 object-contain'}
                 />
               ) : (
@@ -158,11 +177,11 @@ export default function StoreLayout() {
                 </span>
               )}
               {visualIdentity.assets.mobileLogo && (
-                <img src={visualIdentity.assets.mobileLogo} alt="LUNDER" className="h-8 w-8 object-contain sm:hidden" />
+                <img src={visualIdentity.assets.mobileLogo} alt={siteName} className="h-8 w-8 object-contain sm:hidden" />
               )}
               <span className="block min-w-0">
                 <span className="block truncate text-[12px] font-black tracking-[0.09em] text-offwhite sm:text-[13px]">
-                  LUNDER’S 3D STUDIO
+                  {siteName}
                 </span>
                 <span className="mt-0.5 block text-[9px] font-bold uppercase tracking-[0.24em] text-charcoal-400">
                   Atelier d’impression 3D
@@ -314,7 +333,7 @@ export default function StoreLayout() {
               <div className="absolute inset-0 bg-gradient-to-t from-charcoal-950 via-charcoal-950/50 to-transparent" />
               <div className="absolute inset-x-0 bottom-0">
                 <div className="lz-container pb-5">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-brand-red-light">LUNDER · Atelier 3D</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-brand-red-light">{siteName} · Atelier 3D</p>
                   <p className="mt-1 max-w-md text-sm text-charcoal-200">Des pièces pensées, dessinées et fabriquées en Algérie.</p>
                 </div>
               </div>
@@ -331,7 +350,7 @@ export default function StoreLayout() {
                       <Printer className="h-4 w-4 text-white" />
                     </span>
                   )}
-                  <span className="text-sm font-black tracking-[0.08em]">LUNDER’S 3D STUDIO</span>
+                  <span className="text-sm font-black tracking-[0.08em]">{siteName}</span>
                 </div>
                 <p className="mt-5 max-w-sm text-sm leading-7 text-charcoal-400">
                   Un atelier de design et de fabrication 3D : pièces du catalogue, prototypes et
@@ -414,7 +433,7 @@ export default function StoreLayout() {
             </div>
 
             <div className="mt-12 flex flex-col gap-3 border-t border-charcoal-400/10 pt-5 text-[11px] text-charcoal-500 sm:flex-row sm:items-center sm:justify-between">
-              <span>© {new Date().getFullYear()} LUNDER’S 3D STUDIO · Algérie</span>
+              <span>© {new Date().getFullYear()} {siteName} · Algérie</span>
               <span className="inline-flex items-center gap-2">
                 <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
                 Paiement à la livraison · Livraison selon disponibilité
