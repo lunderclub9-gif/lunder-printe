@@ -223,6 +223,25 @@ export default function AdminSettings() {
         </div>
       </section>
 
+      <section className="admin-card mb-6">
+        <div className="mb-3">
+          <p className="admin-eyebrow">Comptes et sécurité</p>
+          <h2 className="text-lg font-semibold text-offwhite">Inscription, connexion et récupération</h2>
+          <p className="mt-1 text-xs leading-5 text-charcoal-400">
+            Les clients gèrent leur compte depuis l’espace personnel. La récupération du mot de passe utilise l’e-mail Supabase Auth; les domaines de retour et le service SMTP doivent être configurés dans Supabase avant l’ouverture publique.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Link to="/admin/clients" className="btn-secondary">Gérer les clients</Link>
+          <Link to="/boutique/compte" className="btn-secondary">Voir l’espace client</Link>
+          <a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer" className="btn-secondary">Configuration Supabase</a>
+          <a href="https://github.com/lunderclub9-gif/lunder-printe/blob/main/docs/PRELAUNCH_CHECKLIST.md" target="_blank" rel="noopener noreferrer" className="btn-secondary">Checklist avant lancement</a>
+        </div>
+        <p className="mt-3 text-[11px] leading-5 text-amber-200/80">
+          Important : ne renseignez jamais de clé service_role dans les paramètres de la boutique ou dans une variable VITE_*. Vérifiez le projet Supabase et les URL de redirection avant d’activer les inscriptions publiques.
+        </p>
+      </section>
+
       {error && (
         <div role="alert" className="admin-feedback admin-feedback-error mb-4">
           {error}

@@ -6,6 +6,7 @@ on:
       - 'main'
       - 'feature/**'
       - 'audit-*'
+      - 'prelaunch-*'
       - 'tayeb'
   pull_request:
     branches:

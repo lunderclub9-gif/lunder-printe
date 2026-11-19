@@ -77,6 +77,8 @@ export default function CustomerAccountPage() {
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [resetEmailSent, setResetEmailSent] = useState(false)
+  const [confirmationPending, setConfirmationPending] = useState(false)
+  const [passwordChangeMode, setPasswordChangeMode] = useState(false)
   const [accountOrders, setAccountOrders] = useState<AccountOrder[]>([])
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null)
   const [accountRequests, setAccountRequests] = useState<AccountRequest[]>([])
@@ -86,6 +88,33 @@ export default function CustomerAccountPage() {
   useEffect(() => {
     setEditName(profile?.full_name ?? '')
   }, [profile?.full_name])
+
+  // Supabase emits PASSWORD_RECOVERY after a valid recovery link is exchanged.
+  // Keep the reset form in sync with that event, including links opened in an existing tab.
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setRecoveryMode(true)
+        setPasswordChangeMode(false)
+        setMessage({ type: 'info', text: 'Lien vérifié. Choisissez maintenant votre nouveau mot de passe.' })
+      }
+    })
+
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('mode') === 'verified') {
+      setMessage({ type: 'success', text: 'Adresse e-mail confirmée. Vous pouvez maintenant vous connecter.' })
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''))
+    const authError = params.get('error_description') ?? hashParams.get('error_description')
+    if (authError) {
+      setRecoveryMode(false)
+      setMessage({ type: 'error', text: 'Le lien de confirmation ou de réinitialisation a expiré ou n’est plus valide. Demandez un nouveau lien.' })
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+
+    return () => subscription.unsubscribe()
+  }, [])
   
   useEffect(() => {
     const userId = session?.user.id
@@ -195,29 +224,67 @@ export default function CustomerAccountPage() {
     }
 
     setSaving(true)
-    if (mode === 'login') {
-      const { error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password })
-      setSaving(false)
-      if (error) setMessage({ type: 'error', text: 'Connexion impossible. Vérifiez vos identifiants et réessayez.' })
-      else setMessage({ type: 'success', text: 'Connexion réussie. Bienvenue dans votre espace LUNDER.' })
-      return
-    }
+    try {
+      if (mode === 'login') {
+        const { error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password })
+        if (error) {
+          setMessage({ type: 'error', text: 'Connexion impossible. Vérifiez vos identifiants et réessayez.' })
+        } else {
+          setConfirmationPending(false)
+          setMessage({ type: 'success', text: 'Connexion réussie. Bienvenue dans votre espace LUNDER.' })
+        }
+        return
+      }
 
-    const { data, error } = await supabase.auth.signUp({
-      email: cleanEmail,
-      password,
-      options: { data: { name: name.trim() } },
-    })
-    setSaving(false)
-    if (error) {
-      setMessage({ type: 'error', text: error.message.includes('already registered')
-        ? 'Cette adresse e-mail possède déjà un compte. Connectez-vous.'
-        : 'La création du compte a échoué. Vérifiez les informations et réessayez.' })
+      const { data, error } = await supabase.auth.signUp({
+        email: cleanEmail,
+        password,
+        options: {
+          data: { name: name.trim() },
+          emailRedirectTo: `${window.location.origin}/boutique/compte?mode=verified`,
+        },
+      })
+      if (error) {
+        setMessage({ type: 'error', text: error.message.toLowerCase().includes('already registered')
+          ? 'Cette adresse e-mail possède déjà un compte. Connectez-vous.'
+          : 'La création du compte a échoué. Vérifiez les informations et réessayez.' })
+        return
+      }
+      setConfirmationPending(!data.session)
+      setMessage(data.session
+        ? { type: 'success', text: 'Votre compte est créé. Bienvenue chez LUNDER !' }
+        : { type: 'info', text: 'Votre compte est presque prêt : confirmez votre adresse e-mail depuis le message reçu.' })
+    } catch {
+      setMessage({ type: 'error', text: 'Service indisponible pour le moment. Vérifiez votre connexion puis réessayez.' })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const resendConfirmation = async () => {
+    const cleanEmail = email.trim().toLowerCase()
+    if (!cleanEmail) {
+      setMessage({ type: 'error', text: 'Saisissez votre adresse e-mail pour recevoir le message de confirmation.' })
       return
     }
-    setMessage(data.session
-      ? { type: 'success', text: 'Votre compte est créé. Bienvenue chez LUNDER !' }
-      : { type: 'info', text: 'Votre compte est presque prêt : confirmez votre adresse e-mail depuis le message reçu.' })
+    setSaving(true)
+    setMessage(null)
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: cleanEmail,
+        options: { emailRedirectTo: `${window.location.origin}/boutique/compte?mode=verified` },
+      })
+      if (error) {
+        setMessage({ type: 'error', text: 'Impossible de renvoyer le message. Attendez un instant puis réessayez.' })
+        return
+      }
+      setMessage({ type: 'success', text: 'Si cette adresse attend une confirmation, un nouveau message vient d’être envoyé.' })
+    } catch {
+      setMessage({ type: 'error', text: 'Service e-mail indisponible. Réessayez dans quelques instants.' })
+    } finally {
+      setSaving(false)
+    }
   }
 
   const requestPasswordReset = async () => {
@@ -228,16 +295,21 @@ export default function CustomerAccountPage() {
     }
     setSaving(true)
     setMessage(null)
-    const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
-      redirectTo: `${window.location.origin}/boutique/compte?mode=recovery`,
-    })
-    setSaving(false)
-    if (error) {
-      setMessage({ type: 'error', text: 'Impossible d’envoyer le lien. Vérifiez votre adresse et réessayez.' })
-      return
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+        redirectTo: `${window.location.origin}/boutique/compte?mode=recovery`,
+      })
+      if (error) {
+        setMessage({ type: 'error', text: 'Impossible d’envoyer le lien. Vérifiez votre adresse et réessayez.' })
+        return
+      }
+      setResetEmailSent(true)
+      setMessage({ type: 'success', text: 'Si cette adresse correspond à un compte, un lien de réinitialisation vient d’être envoyé.' })
+    } catch {
+      setMessage({ type: 'error', text: 'Service e-mail indisponible. Réessayez dans quelques instants.' })
+    } finally {
+      setSaving(false)
     }
-    setResetEmailSent(true)
-    setMessage({ type: 'success', text: 'Si cette adresse correspond à un compte, un lien de réinitialisation vient d’être envoyé.' })
   }
 
   const updatePassword = async (event: FormEvent) => {
@@ -252,17 +324,24 @@ export default function CustomerAccountPage() {
     }
     setSaving(true)
     setMessage(null)
-    const { error } = await supabase.auth.updateUser({ password: newPassword })
-    setSaving(false)
-    if (error) {
-      setMessage({ type: 'error', text: 'La mise à jour a échoué. Ouvrez à nouveau le lien reçu par e-mail et réessayez.' })
-      return
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword })
+      if (error) {
+        setMessage({ type: 'error', text: 'La mise à jour a échoué. Ouvrez à nouveau le lien reçu par e-mail et réessayez.' })
+        return
+      }
+      const wasRecovery = recoveryMode
+      setRecoveryMode(false)
+      setPasswordChangeMode(false)
+      setNewPassword('')
+      setConfirmPassword('')
+      if (wasRecovery) window.history.replaceState({}, '', window.location.pathname)
+      setMessage({ type: 'success', text: 'Votre mot de passe a été modifié avec succès.' })
+    } catch {
+      setMessage({ type: 'error', text: 'Impossible de modifier le mot de passe pour le moment. Réessayez.' })
+    } finally {
+      setSaving(false)
     }
-    setRecoveryMode(false)
-    setNewPassword('')
-    setConfirmPassword('')
-    window.history.replaceState({}, '', '/boutique/compte')
-    setMessage({ type: 'success', text: 'Votre mot de passe a été modifié avec succès.' })
   }
 
   const saveProfile = async (event: FormEvent) => {
@@ -273,25 +352,35 @@ export default function CustomerAccountPage() {
     }
     setSaving(true)
     setMessage(null)
-    const { error } = await supabase
-      .from('profiles')
-      .update({ full_name: editName.trim() })
-      .eq('id', session.user.id)
-    setSaving(false)
-    if (error) {
-      setMessage({ type: 'error', text: 'Impossible de mettre à jour votre profil. Réessayez.' })
-      return
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ full_name: editName.trim() })
+        .eq('id', session.user.id)
+      if (error) {
+        setMessage({ type: 'error', text: 'Impossible de mettre à jour votre profil. Réessayez.' })
+        return
+      }
+      setEditing(false)
+      setMessage({ type: 'success', text: 'Votre profil a été mis à jour.' })
+      window.location.reload()
+    } catch {
+      setMessage({ type: 'error', text: 'Service indisponible. Votre profil n’a pas été modifié.' })
+    } finally {
+      setSaving(false)
     }
-    setEditing(false)
-    setMessage({ type: 'success', text: 'Votre profil a été mis à jour.' })
-    window.location.reload()
   }
 
   const handleSignOut = async () => {
     setSaving(true)
-    await signOut()
-    setSaving(false)
-    setMessage({ type: 'success', text: 'Vous êtes déconnecté.' })
+    try {
+      await signOut()
+      setMessage({ type: 'success', text: 'Vous êtes déconnecté.' })
+    } catch {
+      setMessage({ type: 'error', text: 'La déconnexion a échoué. Actualisez la page puis réessayez.' })
+    } finally {
+      setSaving(false)
+    }
   }
 
   const activeOrders = accountOrders.filter((order) =>
@@ -372,7 +461,21 @@ export default function CustomerAccountPage() {
                 <div><p className="text-[11px] font-semibold uppercase tracking-wider text-charcoal-500">Nom complet</p><p className="mt-1 font-semibold text-white">{profile?.full_name || 'Non renseigné'}</p></div>
                 <div><p className="text-[11px] font-semibold uppercase tracking-wider text-charcoal-500">Adresse e-mail</p><p className="mt-1 break-all text-sm text-charcoal-200">{session.user.email}</p></div>
                 <div><p className="text-[11px] font-semibold uppercase tracking-wider text-charcoal-500">Compte</p><p className="mt-1 inline-flex items-center gap-2 text-sm text-emerald-300"><ShieldCheck className="h-4 w-4" /> Connecté et sécurisé</p></div>
-                <button type="button" className="btn-secondary" onClick={() => setEditing(true)}>Modifier mon nom</button>
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" className="btn-secondary" onClick={() => setEditing(true)}>Modifier mon nom</button>
+                  <button type="button" className="btn-secondary" onClick={() => { setPasswordChangeMode((value) => !value); setNewPassword(''); setConfirmPassword(''); setMessage(null) }}>Changer mon mot de passe</button>
+                </div>
+                {passwordChangeMode && (
+                  <form onSubmit={updatePassword} className="mt-5 space-y-3 rounded-xl border border-white/10 bg-charcoal-950/50 p-4">
+                    <p className="text-sm font-semibold text-white">Sécurité du compte</p>
+                    <label className="block"><span className="label-text">Nouveau mot de passe</span><input className="input-field" type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} minLength={8} maxLength={128} autoComplete="new-password" required /></label>
+                    <label className="block"><span className="label-text">Confirmer le mot de passe</span><input className="input-field" type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} minLength={8} maxLength={128} autoComplete="new-password" required /></label>
+                    <div className="flex flex-wrap gap-2">
+                      <button type="submit" className="btn-primary" disabled={saving}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />} Enregistrer</button>
+                      <button type="button" className="btn-secondary" onClick={() => setPasswordChangeMode(false)}>Annuler</button>
+                    </div>
+                  </form>
+                )}
               </div>
             )}
           </section>
@@ -507,6 +610,7 @@ export default function CustomerAccountPage() {
               <label className="block"><span className="label-text">Mot de passe</span><span className="relative block"><KeyRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-charcoal-500" /><input className="input-field px-10" type={showPassword ? 'text' : 'password'} value={password} onChange={(event) => setPassword(event.target.value)} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} required minLength={mode === 'register' ? 8 : 1} maxLength={128} placeholder="••••••••" /><button type="button" aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'} onClick={() => setShowPassword((value) => !value)} className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal-400 hover:text-white">{showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button></span></label>
               <button type="submit" disabled={saving} className="btn-primary w-full">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}{mode === 'login' ? 'Se connecter' : 'Créer mon compte'}</button>
               {mode === 'login' && <button type="button" onClick={requestPasswordReset} disabled={saving} className="w-full text-center text-xs font-semibold text-brand-red-light transition hover:text-white disabled:opacity-50">{saving ? 'Envoi en cours…' : resetEmailSent ? 'Renvoyer le lien de réinitialisation' : 'Mot de passe oublié ? Recevoir un lien'}</button>}
+              {mode === 'register' && confirmationPending && <button type="button" onClick={resendConfirmation} disabled={saving} className="w-full text-center text-xs font-semibold text-brand-red-light transition hover:text-white disabled:opacity-50">{saving ? 'Envoi en cours…' : 'Renvoyer l’e-mail de confirmation'}</button>}
             </form>
             <p className="mt-5 text-center text-[11px] leading-5 text-charcoal-500">Vos identifiants sont gérés par Supabase Auth. LUNDER ne stocke jamais votre mot de passe en clair.</p>
           </section>
