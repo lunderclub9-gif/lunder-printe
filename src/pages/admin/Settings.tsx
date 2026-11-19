@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Bell, Loader2, Save, Volume2 } from 'lucide-react'
+import { ArrowUpRight, Bell, ClipboardList, Image, Loader2, Package, Save, Tags, Truck, Users, Volume2 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth'
 import {
@@ -191,6 +192,36 @@ export default function AdminSettings() {
         Les liens vides sont masqués. Les clés d'API et secrets ne doivent jamais être saisis ici :
         utilisez les secrets de votre hébergeur.
       </p>
+
+      <section className="admin-card mb-6">
+        <div className="mb-4">
+          <p className="admin-eyebrow">Parcours client</p>
+          <h2 className="text-lg font-semibold text-offwhite">Contrôler ce que voit le visiteur</h2>
+          <p className="mt-1 text-xs leading-5 text-charcoal-400">Les éléments de la boutique restent reliés aux mêmes données administrées ici : modifiez les contenus à leur source pour les voir reflétés côté client.</p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {[
+            { to: '/admin/visual-identity', icon: Image, title: 'Accueil et identité visuelle', detail: 'Titres, textes, boutons, images, sections et animations' },
+            { to: '/admin/produits', icon: Package, title: 'Produits et fiches', detail: 'Photos, descriptions, prix, options, stock et délais' },
+            { to: '/admin/categories', icon: Tags, title: 'Catégories', detail: 'Organisation et navigation du catalogue' },
+            { to: '/admin/livraison', icon: Truck, title: 'Livraison', detail: 'Wilayas, tarifs, méthodes et points relais' },
+            { to: '/admin/commandes', icon: ClipboardList, title: 'Commandes', detail: 'Commandes reçues et progression de traitement' },
+            { to: '/admin/clients', icon: Users, title: 'Clients', detail: 'Comptes, informations et historique client' },
+          ].map((item) => {
+            const Icon = item.icon
+            return (
+              <Link key={item.to} to={item.to} className="group flex items-start gap-3 rounded-xl border border-charcoal-400/15 bg-charcoal-900/40 p-4 transition hover:border-brand-red/40 hover:bg-charcoal-900/80">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-red/10 text-brand-red-light"><Icon className="h-5 w-5" /></span>
+                <span className="min-w-0 flex-1">
+                  <strong className="block text-sm text-offwhite">{item.title}</strong>
+                  <span className="mt-1 block text-xs leading-5 text-charcoal-400">{item.detail}</span>
+                </span>
+                <ArrowUpRight className="h-4 w-4 shrink-0 text-charcoal-500 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-brand-red-light" />
+              </Link>
+            )
+          })}
+        </div>
+      </section>
 
       {error && (
         <div role="alert" className="admin-feedback admin-feedback-error mb-4">
