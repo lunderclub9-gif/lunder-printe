@@ -5,7 +5,7 @@ import { useAdminConfirm } from '@/components/admin/AdminConfirmProvider'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth'
 import { validateImage } from '@/lib/media'
-import { contrastRatio, DEFAULT_VISUAL_IDENTITY, parseVisualIdentity, VISUAL_PRESETS, type VisualIdentity } from '@/lib/visual-identity'
+import { accessibleTextColor, contrastRatio, DEFAULT_VISUAL_IDENTITY, parseVisualIdentity, VISUAL_PRESETS, type VisualIdentity } from '@/lib/visual-identity'
 
 const COLOR_FIELDS: { key: keyof VisualIdentity['colors']; label: string }[] = [
   { key: 'primary', label: 'Couleur principale' }, { key: 'secondary', label: 'Couleur secondaire' },
@@ -103,7 +103,7 @@ export default function VisualIdentityStudio() {
     check('Texte secondaire', config.colors.muted, [config.colors.background, config.colors.surface, config.colors.surfaceAlt])
     check('Texte accent', config.colors.primary, [config.colors.background, config.colors.surface])
     check('Accent secondaire', config.colors.accent, [config.colors.background, config.colors.surface])
-    check('Texte des boutons', config.colors.buttonText, [config.colors.primary, config.colors.gradientStart, config.colors.gradientEnd])
+    check('Texte des boutons (après correction automatique)', accessibleTextColor([config.colors.primary, config.colors.gradientStart, config.colors.gradientEnd], config.colors.buttonText), [config.colors.primary, config.colors.gradientStart, config.colors.gradientEnd])
     check('Titres', config.colors.text, [config.colors.header, config.colors.footer])
     return warnings
   }, [config.colors])
