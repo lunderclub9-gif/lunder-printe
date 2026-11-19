@@ -85,12 +85,21 @@ export default function AdminLogin() {
         .eq('id', userData.user.id)
         .maybeSingle()
 
-      if (profileError || profile?.role !== 'owner') {
+      if (profileError) {
+        if (isPostHogEnabled) {
+          posthogLogger.warn('owner login rejected', { reason: 'profile_lookup_failed' })
+        }
+        await supabase.auth.signOut().catch(() => undefined)
+        setError('Connexion réussie, mais impossible de vérifier les droits du compte. Vérifiez la connexion à la base de données et les politiques profiles, puis réessayez.')
+        return
+      }
+
+      if (profile?.role !== 'owner') {
         if (isPostHogEnabled) {
           posthogLogger.warn('owner login rejected', { reason: 'not_authorized' })
         }
         await supabase.auth.signOut().catch(() => undefined)
-        setError('Identifiants invalides.')
+        setError('Email et mot de passe corrects, mais ce compte ne possède pas encore le rôle Owner. Vérifiez que la migration 031 est appliquée et que app_metadata contient l’autorisation LUNDER Owner.')
         return
       }
 
