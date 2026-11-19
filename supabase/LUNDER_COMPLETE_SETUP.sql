@@ -27,8 +27,7 @@
 
 
 
--- >>> BEGIN supabase/.build_parts/setup_part_01.sql
--- TEMPORARY BUILD PART 01/04 - original migrations concatenated in timestamp order
+-- >>> BEGIN CONSOLIDATED MIGRATIONS 001–008
 
 
 
@@ -4351,11 +4350,10 @@ CREATE INDEX IF NOT EXISTS idx_manufacturing_materials_available
   ON manufacturing_materials (is_available, sort_order);
 
 
--- <<< END supabase/.build_parts/setup_part_01.sql
+-- <<< END CONSOLIDATED MIGRATIONS 001–008
 
 
--- >>> BEGIN supabase/.build_parts/setup_part_02.sql
--- TEMPORARY BUILD PART 02/04 - original migrations concatenated in timestamp order
+-- >>> BEGIN CONSOLIDATED MIGRATIONS 009–016
 
 
 
@@ -7554,11 +7552,10 @@ COMMENT ON FUNCTION public.prevent_role_change() IS
   'Blocks profile role changes whenever a Supabase end-user identity is present; privileged database maintenance without auth.uid() remains possible.';
 
 
--- <<< END supabase/.build_parts/setup_part_02.sql
+-- <<< END CONSOLIDATED MIGRATIONS 009–016
 
 
--- >>> BEGIN supabase/.build_parts/setup_part_03.sql
--- TEMPORARY BUILD PART 03/04 - original migrations concatenated in timestamp order
+-- >>> BEGIN CONSOLIDATED MIGRATIONS 017–023 + ACCESS REVOCATION
 
 
 
@@ -8734,11 +8731,10 @@ $$;
 NOTIFY pgrst, 'reload schema';
 
 
--- <<< END supabase/.build_parts/setup_part_03.sql
+-- <<< END CONSOLIDATED MIGRATIONS 017–023 + ACCESS REVOCATION
 
 
--- >>> BEGIN supabase/.build_parts/setup_part_04.sql
--- TEMPORARY BUILD PART 04/04 - original migrations concatenated in timestamp order
+-- >>> BEGIN CONSOLIDATED MIGRATIONS 024–030
 
 
 
@@ -11171,4 +11167,4 @@ GRANT SELECT ON public.customer_account_orders,
 NOTIFY pgrst, 'reload schema';
 
 
--- <<< END supabase/.build_parts/setup_part_04.sql
+-- <<< END CONSOLIDATED MIGRATIONS 024–030
