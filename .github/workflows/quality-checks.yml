@@ -3,6 +3,7 @@ name: Quality checks
 on:
   push:
     branches:
+      - 'main'
       - 'feature/**'
       - 'audit-*'
       - 'tayeb'
