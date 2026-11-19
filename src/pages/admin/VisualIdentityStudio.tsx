@@ -5,7 +5,7 @@ import { useAdminConfirm } from '@/components/admin/AdminConfirmProvider'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth'
 import { validateImage } from '@/lib/media'
-import { contrastRatio, DEFAULT_VISUAL_IDENTITY, parseVisualIdentity, VISUAL_PRESETS, type VisualIdentity } from '@/lib/visual-identity'
+import { accessibleTextColor, contrastRatio, DEFAULT_VISUAL_IDENTITY, parseVisualIdentity, VISUAL_PRESETS, type VisualIdentity } from '@/lib/visual-identity'
 
 const COLOR_FIELDS: { key: keyof VisualIdentity['colors']; label: string }[] = [
   { key: 'primary', label: 'Couleur principale' }, { key: 'secondary', label: 'Couleur secondaire' },
@@ -94,8 +94,17 @@ export default function VisualIdentityStudio() {
 
   const contrastWarnings = useMemo(() => {
     const warnings: string[] = []
-    if (contrastRatio(config.colors.text, config.colors.background) < 4.5) warnings.push('Le texte principal manque de contraste avec le fond.')
-    if (contrastRatio(config.colors.buttonText, config.colors.primary) < 4.5) warnings.push('Le texte des boutons manque de contraste avec la couleur principale.')
+    const check = (label: string, foreground: string, backgrounds: string[]) => {
+      const failed = backgrounds.filter((background) => contrastRatio(foreground, background) < 4.5)
+      if (failed.length) warnings.push(label + ' : contraste insuffisant (minimum WCAG AA 4,5:1).')
+    }
+
+    check('Texte principal', config.colors.text, [config.colors.background, config.colors.surface, config.colors.surfaceAlt])
+    check('Texte secondaire', config.colors.muted, [config.colors.background, config.colors.surface, config.colors.surfaceAlt])
+    check('Texte accent (après correction automatique)', accessibleTextColor([config.colors.background, config.colors.surface], config.colors.primary), [config.colors.background, config.colors.surface])
+    check('Accent secondaire (après correction automatique)', accessibleTextColor([config.colors.background, config.colors.surface], config.colors.accent), [config.colors.background, config.colors.surface])
+    check('Texte des boutons (après correction automatique)', accessibleTextColor([config.colors.primary, config.colors.gradientStart, config.colors.gradientEnd], config.colors.buttonText), [config.colors.primary, config.colors.gradientStart, config.colors.gradientEnd])
+    check('Titres', config.colors.text, [config.colors.header, config.colors.footer])
     return warnings
   }, [config.colors])
 

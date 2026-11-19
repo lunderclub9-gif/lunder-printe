@@ -83,6 +83,22 @@ export function parseVisualIdentity(value?: string | null): VisualIdentity {
   try { return normalizeVisualIdentity(JSON.parse(value)) } catch { return structuredClone(DEFAULT_VISUAL_IDENTITY) }
 }
 
+/** Choose the most readable foreground for one or more solid backgrounds.
+ * A user preference is honored only when it meets WCAG AA (4.5:1) on every surface.
+ */
+export function accessibleTextColor(backgrounds: string[], preferred?: string): string {
+  if (preferred && backgrounds.every((background) => contrastRatio(preferred, background) >= 4.5)) {
+    return preferred
+  }
+  const candidates = ['#FFFFFF', '#111111']
+  return candidates
+    .map((color) => ({
+      color,
+      minimumContrast: Math.min(...backgrounds.map((background) => contrastRatio(color, background))),
+    }))
+    .sort((a, b) => b.minimumContrast - a.minimumContrast)[0].color
+}
+
 export function visualIdentityCssVars(config: VisualIdentity): CSSProperties {
   return {
     '--vi-primary': config.colors.primary, '--vi-secondary': config.colors.secondary,
@@ -95,6 +111,10 @@ export function visualIdentityCssVars(config: VisualIdentity): CSSProperties {
     '--vi-gradient-end': config.colors.gradientEnd,
     '--vi-radius': String(config.shape.radius) + 'px',
     '--vi-button-radius': String(config.shape.buttonRadius) + 'px',
+    '--vi-button-text-safe': accessibleTextColor([config.colors.primary, config.colors.gradientStart, config.colors.gradientEnd], config.colors.buttonText),
+    '--lz-signal-text': accessibleTextColor([config.colors.background, config.colors.surface], config.colors.primary),
+    '--lz-accent-text': accessibleTextColor([config.colors.background, config.colors.surface], config.colors.accent),
+    '--lz-accent-button-text': accessibleTextColor([config.colors.accent], config.colors.buttonText),
     '--vi-shadow': String(config.shape.shadow),
     '--vi-body-font': '"' + config.typography.bodyFont + '", system-ui, sans-serif',
     '--vi-heading-font': '"' + config.typography.headingFont + '", system-ui, sans-serif',
