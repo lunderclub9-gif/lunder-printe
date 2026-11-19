@@ -391,16 +391,20 @@ export default function CustomerAccountPage() {
           </section>
         </div>
 
-        <section className="mt-6 rounded-2xl border border-white/10 bg-charcoal-800/70 p-5 sm:p-7">
-          <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="flex items-center gap-2 text-lg font-bold text-white"><FileText className="h-5 w-5 text-brand-red-light" /> Mes commandes et demandes</h2>
-              <p className="mt-1 text-xs text-charcoal-400">Historique associé à ce compte, visible uniquement après connexion.</p>
+        <details className="group mt-6 rounded-2xl border border-white/10 bg-charcoal-800/70">
+          <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 p-5 sm:p-7 [&::-webkit-details-marker]:hidden">
+            <span>
+              <span className="flex items-center gap-2 text-lg font-bold text-white"><FileText className="h-5 w-5 text-brand-red-light" /> Mon historique</span>
+              <span className="mt-1 block text-xs text-charcoal-400">{accountOrders.length} commande(s) · {accountRequests.length} demande(s) sur mesure · détails et devis</span>
+            </span>
+            <span className="rounded-full border border-white/10 px-3 py-2 text-xs font-semibold text-charcoal-200 transition group-open:border-brand-red/40 group-open:text-brand-red-light">Afficher / masquer</span>
+          </summary>
+          <div className="border-t border-white/10 px-5 pb-5 pt-5 sm:px-7 sm:pb-7">
+            <div className="mb-4 flex justify-end">
+              <button type="button" onClick={() => window.location.reload()} className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-charcoal-200 transition hover:border-brand-red/40 hover:text-white" aria-label="Actualiser l’historique">
+                <RefreshCw className="h-3.5 w-3.5" /> Actualiser
+              </button>
             </div>
-            <button type="button" onClick={() => window.location.reload()} className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-charcoal-200 transition hover:border-brand-red/40 hover:text-white" aria-label="Actualiser l’historique">
-              <RefreshCw className="h-3.5 w-3.5" /> Actualiser
-            </button>
-          </div>
 
           {activityLoading ? (
             <div className="flex items-center justify-center gap-2 py-10 text-sm text-charcoal-400"><Loader2 className="h-5 w-5 animate-spin text-brand-red" /> Chargement de votre historique…</div>
@@ -487,7 +491,8 @@ export default function CustomerAccountPage() {
             </div>
           )}
           <p className="mt-5 border-t border-white/10 pt-4 text-[11px] leading-5 text-charcoal-500">Les demandes et commandes créées avant l’activation de cette liaison ne sont pas automatiquement attribuées à un compte. Elles restent accessibles via leur suivi habituel.</p>
-        </section>
+          </div>
+        </details>
         </>
       )) : (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(260px,.8fr)]">

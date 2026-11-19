@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Box, CheckCircle2, Clock3, Layers, Loader2, Minus, Package,
   Plus, Rotate3D, Ruler, ShieldCheck, ShoppingCart, Truck, AlertTriangle,
-  Weight, Palette, ChevronRight,
+  Weight, Palette, ChevronRight, ArrowRight,
 } from 'lucide-react'
 import {
   supabase,
@@ -23,6 +23,7 @@ const MAX_PER_ORDER = 10
 
 export default function ProductDetailPage() {
   const { slug } = useParams()
+  const navigate = useNavigate()
   const [product, setProduct] = useState<Product | null>(null)
   const [images, setImages] = useState<ProductImage[]>([])
   const [options, setOptions] = useState<ProductOption[]>([])
@@ -226,8 +227,8 @@ export default function ProductDetailPage() {
       null
     : null
 
-  const handleAddToCart = () => {
-    if (!product || !inStock) return
+  const addSelectedToCart = () => {
+    if (!product || !inStock) return false
     add({
       productId: product.id,
       variantId: matchedVariant?.id ?? null,
@@ -238,7 +239,17 @@ export default function ProductDetailPage() {
       imageUrl: activeImage,
     }, quantity)
     setAdded(true)
+    return true
+  }
+
+  const handleAddToCart = () => {
+    if (!addSelectedToCart()) return
     window.setTimeout(() => setAdded(false), 3200)
+  }
+
+  const handleBuyNow = () => {
+    if (!addSelectedToCart()) return
+    navigate('/boutique/commande')
   }
 
   const specs = [
@@ -487,10 +498,15 @@ export default function ProductDetailPage() {
                 </div>
               )}
 
-              <button type="button" onClick={handleAddToCart} disabled={!inStock} className="btn-primary min-h-12 w-full">
-                <ShoppingCart className="h-4 w-4" />
-                {inStock ? 'Ajouter au panier' : combinationAvailable ? 'Indisponible' : 'Combinaison indisponible'}
-              </button>
+              <div className="grid gap-2 sm:grid-cols-[1fr_1fr]">
+                <button type="button" onClick={handleAddToCart} disabled={!inStock} className="btn-secondary min-h-12 w-full">
+                  <ShoppingCart className="h-4 w-4" />
+                  {inStock ? 'Ajouter au panier' : combinationAvailable ? 'Indisponible' : 'Combinaison indisponible'}
+                </button>
+                <button type="button" onClick={handleBuyNow} disabled={!inStock} className="btn-primary min-h-12 w-full">
+                  Acheter maintenant <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
               <WishlistButton
                 withLabel
                 className="w-full"
