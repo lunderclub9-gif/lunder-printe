@@ -105,7 +105,8 @@ export default function CustomerAccountPage() {
       setMessage({ type: 'success', text: 'Adresse e-mail confirmée. Vous pouvez maintenant vous connecter.' })
       window.history.replaceState({}, '', window.location.pathname)
     }
-    const authError = params.get('error_description')
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''))
+    const authError = params.get('error_description') ?? hashParams.get('error_description')
     if (authError) {
       setRecoveryMode(false)
       setMessage({ type: 'error', text: 'Le lien de confirmation ou de réinitialisation a expiré ou n’est plus valide. Demandez un nouveau lien.' })
