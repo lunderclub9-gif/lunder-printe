@@ -1,10 +1,9 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Navigate } from 'react-router-dom'
 import { Printer, Lock, Mail, Loader2, AlertCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth'
 import { isPostHogEnabled, posthogLogger } from '@/lib/posthog'
-import { Navigate } from 'react-router-dom'
 
 export default function AdminLogin() {
   const { isOwner, loading } = useAuth()
@@ -28,38 +27,61 @@ export default function AdminLogin() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (submitting) return
+
     setError(null)
     setSubmitting(true)
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+    try {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      })
 
-    if (signInError) {
-      if (isPostHogEnabled) {
-        posthogLogger.warn('owner login rejected', { reason: 'invalid_credentials' })
+      if (signInError) {
+        if (isPostHogEnabled) {
+          posthogLogger.warn('owner login rejected', { reason: 'invalid_credentials' })
+        }
+        setError('Identifiants invalides.')
+        return
       }
-      setError('Identifiants invalides.')
-      setSubmitting(false)
-      return
-    }
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', (await supabase.auth.getUser()).data.user?.id)
-      .maybeSingle()
-
-    if (profile?.role !== 'owner') {
-      if (isPostHogEnabled) {
-        posthogLogger.warn('owner login rejected', { reason: 'not_authorized' })
+      const { data: userData, error: userError } = await supabase.auth.getUser()
+      if (userError || !userData.user) {
+        await supabase.auth.signOut().catch(() => undefined)
+        setError('Identifiants invalides.')
+        return
       }
-      await supabase.auth.signOut()
-      setError('Identifiants invalides.')
-      setSubmitting(false)
-      return
-    }
 
-    await supabase.rpc('log_owner_event', { p_action: 'proprietaire.connexion' })
-    navigate('/admin/dashboard')
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', userData.user.id)
+        .maybeSingle()
+
+      if (profileError || profile?.role !== 'owner') {
+        if (isPostHogEnabled) {
+          posthogLogger.warn('owner login rejected', { reason: 'not_authorized' })
+        }
+        await supabase.auth.signOut().catch(() => undefined)
+        setError('Identifiants invalides.')
+        return
+      }
+
+      // L'audit est utile mais ne doit pas empêcher un propriétaire authentifié
+      // d'ouvrir le back office si le service de journalisation est indisponible.
+      try {
+        await supabase.rpc('log_owner_event', { p_action: 'proprietaire.connexion' })
+      } catch {
+        console.warn('[LUNDER] journalisation de connexion indisponible')
+      }
+
+      navigate('/admin/dashboard')
+    } catch {
+      setError('Connexion impossible pour le moment. Vérifiez votre connexion puis réessayez.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -75,7 +97,7 @@ export default function AdminLogin() {
 
         <div className="card p-8">
           {error && (
-            <div className="mb-6 flex items-center gap-2 rounded-lg border border-brand-red/30 bg-brand-red/10 px-4 py-3 text-sm text-brand-red-light">
+            <div role="alert" aria-live="polite" className="mb-6 flex items-center gap-2 rounded-lg border border-brand-red/30 bg-brand-red/10 px-4 py-3 text-sm text-brand-red-light">
               <AlertCircle className="h-4 w-4 flex-shrink-0" />
               {error}
             </div>
@@ -89,6 +111,7 @@ export default function AdminLogin() {
                 <input
                   id="email"
                   type="email"
+                  autoComplete="username"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -105,6 +128,7 @@ export default function AdminLogin() {
                 <input
                   id="password"
                   type="password"
+                  autoComplete="current-password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
