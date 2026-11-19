@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - 'feature/**'
+      - 'audit-*'
       - 'tayeb'
   pull_request:
     branches:
