@@ -22,6 +22,22 @@ export default function CartPage() {
               <p className="lz-lead mt-3 max-w-xl">
                 Vérifiez vos articles, puis choisissez votre mode de livraison à l’étape suivante.
               </p>
+              <ol aria-label="Étapes de commande" className="mt-6 flex flex-wrap items-center gap-2 text-[11px] font-semibold sm:gap-4">
+                <li aria-current="step" className="flex items-center gap-2 text-offwhite">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-red text-white">01</span>
+                  Panier
+                </li>
+                <li className="flex items-center gap-2 text-charcoal-500">
+                  <span className="h-px w-5 bg-charcoal-400/30" aria-hidden="true" />
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-charcoal-700/70">02</span>
+                  Livraison
+                </li>
+                <li className="flex items-center gap-2 text-charcoal-500">
+                  <span className="h-px w-5 bg-charcoal-400/30" aria-hidden="true" />
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-charcoal-700/70">03</span>
+                  Confirmation
+                </li>
+              </ol>
             </div>
             {items.length > 0 && (
               <p className="text-xs text-charcoal-400" aria-live="polite">
