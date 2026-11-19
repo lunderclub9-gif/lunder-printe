@@ -3,7 +3,16 @@ name: Isolated database regression
 on:
   push:
     branches:
-      - tayeb
+      - 'audit-*'
+      - 'feature/**'
+      - 'tayeb'
+    paths:
+      - "supabase/**"
+      - ".github/workflows/database-regression.yml"
+  pull_request:
+    branches:
+      - 'main'
+      - 'tayeb'
     paths:
       - "supabase/**"
       - ".github/workflows/database-regression.yml"
@@ -22,7 +31,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - name: Checkout tayeb source
+      - name: Checkout source
         uses: actions/checkout@v5
 
       - name: Install Supabase CLI
